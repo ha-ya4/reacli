@@ -1,10 +1,12 @@
 package main
 
 import (
-	//"fmt"
+	"fmt"
 	"os"
 
 	"github.com/urfave/cli"
+
+	"github.com/ha-ya4/reacli/src/cmd"
 )
 
 func main() {
@@ -14,6 +16,8 @@ func main() {
 	app.Version = "0.0.1"
 
 	app.Commands = []cli.Command{}
+	fmt.Println("hello")
+	//cmd.Hello()
 
 	app.Run(os.Args)
 }
