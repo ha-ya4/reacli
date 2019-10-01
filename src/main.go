@@ -1,23 +1,23 @@
 package main
 
 import (
-	"fmt"
+	//"fmt"
 	"os"
 
 	"github.com/urfave/cli"
 
-	"github.com/ha-ya4/reacli/src/cmd"
+	appcmd "github.com/ha-ya4/reacli/src/cmd"
 )
 
 func main() {
 	app := cli.NewApp()
-	app.Name = "sample"
-	app.Usage = "sample cli"
+	app.Name = "reacli"
+	app.Usage = "project cli"
 	app.Version = "0.0.1"
 
-	app.Commands = []cli.Command{}
-	fmt.Println("hello")
-	//cmd.Hello()
+	app.Commands = []cli.Command {
+		appcmd.CreateNewProject(),
+	}
 
 	app.Run(os.Args)
 }
