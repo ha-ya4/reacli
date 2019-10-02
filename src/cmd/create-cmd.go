@@ -11,13 +11,16 @@ import (
 	apperr "github.com/ha-ya4/reacli/src/error"
 )
 
+
 // Create はcreateコマンドの処理を記述した構造体をリターンする関数
 func Create() cli.Command {
+
 	return cli.Command {
 		Name: "create",
 		Usage: "create the specified argument",
 		Flags: []cli.Flag {
 			flagCreateProject(),
+			flagDefaultProject(),
 		},
 		Action: func(c *cli.Context) error {
 			return action(c)
@@ -27,14 +30,24 @@ func Create() cli.Command {
 
 // プロジェクト名のフラグ(create -project projectname)
 func flagCreateProject() cli.StringFlag {
+
 	return cli.StringFlag {
 		Name: "project, p",
-		Usage: "create new react project",
+		Usage: "create new react project and if you need setup",
+	}
+}
+
+func flagDefaultProject() cli.BoolFlag {
+
+	return cli.BoolFlag {
+		Name: "default, d",
+		Usage: "default project",
 	}
 }
 
 // StringFlagの文字列に合わせて分岐する
 func action(c *cli.Context) error {
+
 	// 新しいプロジェクトを作成する
 	if c.String("project") != "" {
 		return createNewProject(c)
@@ -43,8 +56,10 @@ func action(c *cli.Context) error {
 	return fmt.Errorf("\n%s\n ", apperr.CreateFlagErr)
 }
 
+
 // create-react-appを使って新しいプロジェクトを作成する
 func createNewProject(c *cli.Context) error {
+
 	projectName := c.String("project")
 	cmd := exec.Command("npx", "create-react-app", projectName)
 	cmd.Stdout = os.Stdout
@@ -59,13 +74,17 @@ func createNewProject(c *cli.Context) error {
 		return result
 	}
 
-  return projectSetUp(c)
+	// defaultフラグがなければデフォルトプロジェクトから変更
+	if c.Bool("default") == false {
+	  return projectSetUp(c)
+	}
 
 	return nil
 }
 
 // デフォルトのプロジェクトを変更
 func projectSetUp(c *cli.Context) (err error) {
+
 	// srcフォルダに移動
 	err = os.Chdir(c.String("project") + "/src")
 	// App.jsをクラスコンポーネントに書き換えてrender()の中身をdivのみにする
@@ -76,5 +95,7 @@ func projectSetUp(c *cli.Context) (err error) {
 	err = os.Mkdir("views", 777)
 	// 最初から用意されてるreactのロゴを削除
 	err = os.Remove("logo.svg")
+
+	fmt.Println("\nproject setup OK!\n ")
 	return
 }
