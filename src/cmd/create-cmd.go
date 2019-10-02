@@ -18,30 +18,29 @@ func Create() cli.Command {
 	return cli.Command {
 		Name: "create",
 		Usage: "create the specified argument",
-		Flags: []cli.Flag {
-			flagCreateProject(),
-			flagDefaultProject(),
-		},
+		Flags: flag(),
 		Action: func(c *cli.Context) error {
 			return action(c)
 		},
 	}
 }
 
-// プロジェクト名のフラグ(create -project projectname)
-func flagCreateProject() cli.StringFlag {
+func flag() []cli.Flag {
+	return []cli.Flag {
+		cli.StringFlag {
+			Name: "project, p",
+			Usage: "create new react project and if you need setup",
+		},
 
-	return cli.StringFlag {
-		Name: "project, p",
-		Usage: "create new react project and if you need setup",
-	}
-}
+		cli.BoolFlag {
+			Name: "default, d",
+			Usage: "default project",
+		},
 
-func flagDefaultProject() cli.BoolFlag {
-
-	return cli.BoolFlag {
-		Name: "default, d",
-		Usage: "default project",
+		cli.StringFlag {
+			Name: "component, c",
+			Usage: "create new component file",
+		},
 	}
 }
 
@@ -51,6 +50,11 @@ func action(c *cli.Context) error {
 	// 新しいプロジェクトを作成する
 	if c.String("project") != "" {
 		return createNewProject(c)
+	}
+
+	// 新しいコンポーネントファイルを作成する
+	if c.String("component") != "" {
+		return createNewComponent(c)
 	}
 
 	return fmt.Errorf("\n%s\n ", apperr.CreateFlagErr)
@@ -98,4 +102,11 @@ func projectSetUp(c *cli.Context) (err error) {
 
 	fmt.Println("\nproject setup OK!\n ")
 	return
+}
+
+// 
+func createNewComponent(c *cli.Context) error {
+
+	fmt.Println(c.String("component"))
+	return nil
 }
