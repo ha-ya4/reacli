@@ -16,7 +16,7 @@ func main() {
 	app.Version = "0.0.1"
 
 	app.Commands = []cli.Command {
-		appcmd.CreateNewProject(),
+		appcmd.Create(),
 	}
 
 	err := app.Run(os.Args)
