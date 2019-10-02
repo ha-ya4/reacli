@@ -1,8 +1,8 @@
 package main
 
 import (
-	//"fmt"
 	"os"
+	"fmt"
 
 	"github.com/urfave/cli"
 
@@ -19,5 +19,8 @@ func main() {
 		appcmd.CreateNewProject(),
 	}
 
-	app.Run(os.Args)
+	err := app.Run(os.Args)
+	if err != nil {
+		fmt.Println(err)
+	}
 }
