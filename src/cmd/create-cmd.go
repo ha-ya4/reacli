@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"io/ioutil"
 
 	"github.com/urfave/cli"
 
@@ -58,5 +59,22 @@ func createNewProject(c *cli.Context) error {
 		return result
 	}
 
+  return projectSetUp(c)
+
 	return nil
+}
+
+// デフォルトのプロジェクトを変更
+func projectSetUp(c *cli.Context) (err error) {
+	// srcフォルダに移動
+	err = os.Chdir(c.String("project") + "/src")
+	// App.jsをクラスコンポーネントに書き換えてrender()の中身をdivのみにする
+	err = ioutil.WriteFile("App.js", []byte(appComponent), 777)
+	// componentsフォルダ作成
+	err = os.Mkdir("components", 777)
+	// viewsフォルダ作成
+	err = os.Mkdir("views", 777)
+	// 最初から用意されてるreactのロゴを削除
+	err = os.Remove("logo.svg")
+	return
 }
