@@ -42,6 +42,11 @@ func flag() []cli.Flag {
 			Name: "component, c",
 			Usage: "create new component file",
 		},
+		// 新しいディレクトリを作成しその中にコンポーネントを作成する
+		cli.BoolFlag {
+			Name: "dir",
+			Usage: "Create a new directory and create components in it",
+		},
 	}
 }
 
@@ -68,7 +73,7 @@ func createNewProject(c *cli.Context) error {
 	projectName := c.String("project")
 	args := []string { "create-react-app", projectName}
 	result := execCommand("npx", args, func() {
-		fmt.Printf("\nstarting create new project [%s]. please wait...\n", projectName)
+		fmt.Printf("\nstarting create a new project [%s]. please wait...\n", projectName)
 	})
 
 	if result != nil {
@@ -93,7 +98,7 @@ func projectSetUp(c *cli.Context) (err error) {
 	}
 
 	// App.jsをクラスコンポーネントに書き換えてrender()の中身をdivのみにする
-	err = ioutil.WriteFile("App.js", []byte(appComponent), 0777)
+	err = ioutil.WriteFile("App.js", []byte(appComponentContent), 0777)
 	// componentsフォルダ作成
 	err = os.Mkdir("components", 0777)
 	// viewsフォルダ作成
@@ -108,8 +113,32 @@ func projectSetUp(c *cli.Context) (err error) {
 }
 
 // カレントディレクトリに新しいコンポーネント.js、コンポーネント.css、テストファイルを作る
-func createNewComponent(c *cli.Context) error {
+func createNewComponent(c *cli.Context) (err error) {
 
-	fmt.Println(c.String("component"))
-	return nil
+	componentName := c.String("component")
+
+	// dirフラグがあれば新しいディレクトリを作成しその中にコンポーネントを作成する
+	if c.Bool("dir") == true {
+		err = os.Mkdir(componentName, 0777)
+		err = os.Chdir(componentName)
+		if err != nil {
+			return fmt.Errorf("\nreacli ERR: %s\n ", apperr.CreateComponentErr)
+		}
+	}
+
+	jsFile, err := os.Create(componentName + ".js")
+	_, err = jsFile.Write([]byte(componentContent))
+	jsFile.Close()
+
+	cssFile, err := os.Create(componentName + ".css")
+	cssFile.Close()
+
+	testFile, err := os.Create(componentName + ".test.js")
+	_, err = testFile.Write([]byte(testContent))
+	testFile.Close()
+
+	if err == nil {
+		fmt.Printf("\ncreate a new [component] %s all ready exists\n ", componentName)
+	}
+	return
 }
