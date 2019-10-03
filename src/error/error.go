@@ -4,5 +4,7 @@ import ()
 
 const (
 	// CreateFlagErr createコマンドに何を作るかのflagが指定されていないときのエラー
-	CreateFlagErr = "ERR: Missing create command flag. Please specify the create command flag."
+	CreateFlagErr = "Missing create command flag. Please specify the create command flag."
+	// CreateProjectErr プロジェクト作成に失敗したときのエラー
+	CreateProjectErr = "Failed to create project."
 )

@@ -9,7 +9,7 @@ import (
 // cutin引数に関数を入れることによって、実行中の待機時間に処理を挟むことができる。
 // はさみたい処理が無い場合、呼び出し側ではcutin引数にfunc(){}を指定することになってしまうので
 // cutinを可変長引数にし、何も無い場合はosExec(command, args)のみで呼び出せるようにした
-func osExec(command string, args []string, cutin ...func()) error {
+func execCommand(command string, args []string, cutin ...func()) error {
 
 	cmd := exec.Command(command, args...)
 	cmd.Stdout = os.Stdout

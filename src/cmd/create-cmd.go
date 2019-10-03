@@ -58,7 +58,7 @@ func action(c *cli.Context) error {
 		return createNewComponent(c)
 	}
 
-	return fmt.Errorf("\n%s\n ", apperr.CreateFlagErr)
+	return fmt.Errorf("\nreacli ERR: %s\n ", apperr.CreateFlagErr)
 }
 
 
@@ -67,7 +67,7 @@ func createNewProject(c *cli.Context) error {
 
 	projectName := c.String("project")
 	args := []string { "create-react-app", projectName}
-	result := osExec("npx", args, func() {
+	result := execCommand("npx", args, func() {
 		fmt.Printf("\nstarting create new project [%s]. please wait...\n", projectName)
 	})
 
@@ -86,18 +86,24 @@ func createNewProject(c *cli.Context) error {
 // デフォルトのプロジェクトを変更
 func projectSetUp(c *cli.Context) (err error) {
 
-	// srcフォルダに移動
+	// srcフォルダに移動。移動ができなければプロジェクト作成失敗のはずなのでエラーメッセージを出す
 	err = os.Chdir(c.String("project") + "/src")
+	if err != nil {
+		return fmt.Errorf("\nreacli ERR: %s\n ", apperr.CreateProjectErr)
+	}
+
 	// App.jsをクラスコンポーネントに書き換えてrender()の中身をdivのみにする
-	err = ioutil.WriteFile("App.js", []byte(appComponent), 777)
+	err = ioutil.WriteFile("App.js", []byte(appComponent), 0777)
 	// componentsフォルダ作成
-	err = os.Mkdir("components", 777)
+	err = os.Mkdir("components", 0777)
 	// viewsフォルダ作成
-	err = os.Mkdir("views", 777)
+	err = os.Mkdir("views", 0777)
 	// 最初から用意されてるreactのロゴを削除
 	err = os.Remove("logo.svg")
 
-	fmt.Println("\nproject setup OK!\n ")
+	if err == nil {
+		fmt.Println("\nproject setup OK!\n ")
+	}
 	return
 }
 
