@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"io/ioutil"
 
 	"github.com/urfave/cli"
@@ -27,16 +26,18 @@ func Create() cli.Command {
 
 func flag() []cli.Flag {
 	return []cli.Flag {
+		// プロジェクト作成
+		// ディレクトリを２つ追加、logo.svg削除、App.jsをkclassに書き換える
 		cli.StringFlag {
 			Name: "project, p",
 			Usage: "create new react project and if you need setup",
 		},
-
+		// プロジェクトをcreate-react-appの初期状態のままにしておくかのフラグ
 		cli.BoolFlag {
 			Name: "default, d",
 			Usage: "default project",
 		},
-
+		// コンポーネントファイル作成
 		cli.StringFlag {
 			Name: "component, c",
 			Usage: "create new component file",
@@ -65,15 +66,11 @@ func action(c *cli.Context) error {
 func createNewProject(c *cli.Context) error {
 
 	projectName := c.String("project")
-	cmd := exec.Command("npx", "create-react-app", projectName)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	args := []string { "create-react-app", projectName}
+	result := osExec("npx", args, func() {
+		fmt.Printf("\nstarting create new project [%s]. please wait...\n", projectName)
+	})
 
-	result := cmd.Start()
-
-	fmt.Printf("\nstarting create new project [%s]. please wait...\n", projectName)
-
-	cmd.Wait()
 	if result != nil {
 		return result
 	}
@@ -104,7 +101,7 @@ func projectSetUp(c *cli.Context) (err error) {
 	return
 }
 
-// 
+// カレントディレクトリに新しいコンポーネント.js、コンポーネント.css、テストファイルを作る
 func createNewComponent(c *cli.Context) error {
 
 	fmt.Println(c.String("component"))
