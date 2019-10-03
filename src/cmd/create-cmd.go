@@ -50,30 +50,48 @@ func flag() []cli.Flag {
 	}
 }
 
+type cliContexter interface {
+	String(name string) string
+	Bool(name string) bool
+}
+
 // StringFlagの文字列に合わせて分岐する
-func action(c *cli.Context) error {
+func action(c cliContexter) error {
 
 	// 新しいプロジェクトを作成する
 	if c.String("project") != "" {
-		return createNewProject(c)
+		p := newProject(c.String("project"), c.Bool("default"))
+		return p.create()
 	}
 
 	// 新しいコンポーネントファイルを作成する
 	if c.String("component") != "" {
-		return createNewComponent(c)
+		c := newComponent(c.String("component"), c.Bool("dir"))
+		return c.create()
 	}
 
 	return fmt.Errorf("\nreacli ERR: %s\n ", apperr.CreateFlagErr)
 }
 
 
-// create-react-appを使って新しいプロジェクトを作成する
-func createNewProject(c *cli.Context) error {
+type project struct {
+	name string
+	flagDefault bool
+}
 
-	projectName := c.String("project")
-	args := []string { "create-react-app", projectName}
+func newProject(n string, d bool) project {
+	return project {
+		name: n,
+	  flagDefault: d,
+	}
+}
+
+// create-react-appを使って新しいプロジェクトを作成する
+func(project project) create() error {
+
+	args := []string { "create-react-app", project.name }
 	result := execCommand("npx", args, func() {
-		fmt.Printf("\nstarting create a new project [%s]. please wait...\n", projectName)
+		fmt.Printf("\nstarting create a new project [%s]. please wait...\n", project.name)
 	})
 
 	if result != nil {
@@ -81,18 +99,18 @@ func createNewProject(c *cli.Context) error {
 	}
 
 	// defaultフラグがなければデフォルトプロジェクトから変更
-	if c.Bool("default") == false {
-	  return projectSetUp(c)
+	if project.flagDefault == false {
+	  return project.setUp()
 	}
 
 	return nil
 }
 
 // デフォルトのプロジェクトを変更
-func projectSetUp(c *cli.Context) (err error) {
+func(project project) setUp() (err error) {
 
 	// srcフォルダに移動。移動ができなければプロジェクト作成失敗のはずなのでエラーメッセージを出す
-	err = os.Chdir(c.String("project") + "/src")
+	err = os.Chdir(project.name + "/src")
 	if err != nil {
 		return fmt.Errorf("\nreacli ERR: %s\n ", apperr.CreateProjectErr)
 	}
@@ -112,33 +130,44 @@ func projectSetUp(c *cli.Context) (err error) {
 	return
 }
 
-// カレントディレクトリに新しいコンポーネント.js、コンポーネント.css、テストファイルを作る
-func createNewComponent(c *cli.Context) (err error) {
 
-	componentName := c.String("component")
+type component struct {
+	name string
+	flagDir bool
+}
+
+func newComponent(n string, d bool) component {
+	return component {
+		name: n,
+	  flagDir: d,
+	}
+}
+
+// カレントディレクトリに新しいコンポーネント.js、コンポーネント.css、テストファイルを作る
+func(component component) create() (err error) {
 
 	// dirフラグがあれば新しいディレクトリを作成しその中にコンポーネントを作成する
-	if c.Bool("dir") == true {
-		err = os.Mkdir(componentName, 0777)
-		err = os.Chdir(componentName)
+	if component.flagDir == true {
+		err = os.Mkdir(component.name, 0777)
+		err = os.Chdir(component.name)
 		if err != nil {
 			return fmt.Errorf("\nreacli ERR: %s\n ", apperr.CreateComponentErr)
 		}
 	}
 
-	jsFile, err := os.Create(componentName + ".js")
+	jsFile, err := os.Create(component.name + ".js")
 	_, err = jsFile.Write([]byte(componentContent))
 	jsFile.Close()
 
-	cssFile, err := os.Create(componentName + ".css")
+	cssFile, err := os.Create(component.name + ".css")
 	cssFile.Close()
 
-	testFile, err := os.Create(componentName + ".test.js")
+	testFile, err := os.Create(component.name + ".test.js")
 	_, err = testFile.Write([]byte(testContent))
 	testFile.Close()
 
 	if err == nil {
-		fmt.Printf("\ncreate a new [component] %s all ready exists\n ", componentName)
+		fmt.Printf("\ncreate a new component [%s] all ready exists\n ", component.name)
 	}
 	return
 }
