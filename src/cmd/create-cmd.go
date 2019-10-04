@@ -18,14 +18,15 @@ func Create() cli.Command {
 	return cli.Command {
 		Name: "create",
 		Usage: "create the specified argument",
-		Flags: flag(),
+		Flags: createFlag(),
 		Action: func(c *cli.Context) error {
-			return action(c)
+			return createAction(c)
 		},
 	}
 }
 
-func flag() []cli.Flag {
+func createFlag() []cli.Flag {
+
 	return []cli.Flag {
 		// プロジェクト作成
 		// ディレクトリを２つ追加、logo.svg削除、App.jsをkclassに書き換える
@@ -37,6 +38,10 @@ func flag() []cli.Flag {
 		cli.BoolFlag {
 			Name: "default, d",
 			Usage: "default project",
+		},
+		cli.BoolFlag {
+			Name: "typescript, ts",
+			Usage: "create new react project and if you need setup with typescript",
 		},
 		// コンポーネントファイル作成
 		cli.StringFlag {
@@ -51,17 +56,12 @@ func flag() []cli.Flag {
 	}
 }
 
-type cliContexter interface {
-	String(name string) string
-	Bool(name string) bool
-}
-
 // StringFlagの文字列に合わせて分岐する
-func action(c cliContexter) error {
+func createAction(c cliContexter) error {
 
 	// 新しいプロジェクトを作成する
 	if c.String("project") != "" {
-		p := newProject(c.String("project"), c.Bool("default"))
+		p := newProject(c.String("project"), c.Bool("default"), c.Bool("typescript"))
 		return p.create()
 	}
 
@@ -78,12 +78,14 @@ func action(c cliContexter) error {
 type project struct {
 	name string
 	flagDefault bool
+	flagTS bool
 }
 
-func newProject(n string, d bool) project {
+func newProject(n string, d bool, ts bool) project {
 	return project {
 		name: n,
-	  flagDefault: d,
+		flagDefault: d,
+		flagTS: ts,
 	}
 }
 
@@ -91,6 +93,11 @@ func newProject(n string, d bool) project {
 func(project project) create() error {
 
 	args := []string { "create-react-app", project.name }
+	// tsフラグがあればtypescriptを導入
+	if project.flagTS == true {
+		args = append(args, "--typescript")
+	}
+	// create-react-app実行
 	result := execCommand("npx", args, func() {
 		fmt.Printf("\nstarting create a new project [%s]. please wait...\n", project.name)
 	})
@@ -176,6 +183,7 @@ func(component component) create() (err error) {
 
 // dirフラグがあれば新しいディレクトリを作成しcdする
 func(component component) dirFlag() (err error) {
+
 	if component.flagDir == true {
 		err = os.Mkdir(component.name, 0777)
 		err = os.Chdir(component.name)
