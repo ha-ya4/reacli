@@ -18,9 +18,9 @@ export default App;
 
 const componentContent =(
 `import React, { Component } from 'react';
-import './.css';
+import './{$1}.css';
 
-class  extends Component {
+class {$1} extends Component {
 
   constructor(props) {
     super(props);
@@ -31,13 +31,13 @@ class  extends Component {
   }
 }
 
-export default;
+export default {$1};
 `)
 
 const testContent = (
 `import React from 'react';
 import ReactDOM from 'react-dom';
-import  from './';
+import {$1} from './{$1}';
 
 it('renders without crashing', () => {
   const div = document.createElement('div');

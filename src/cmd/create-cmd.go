@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"io/ioutil"
+	"strings"
 
 	"github.com/urfave/cli"
 
@@ -147,27 +148,37 @@ func newComponent(n string, d bool) component {
 func(component component) create() (err error) {
 
 	// dirフラグがあれば新しいディレクトリを作成しその中にコンポーネントを作成する
-	if component.flagDir == true {
-		err = os.Mkdir(component.name, 0777)
-		err = os.Chdir(component.name)
-		if err != nil {
-			return fmt.Errorf("\nreacli ERR: %s\n ", apperr.CreateComponentErr)
-		}
+	// エラーがでたらファイル作成失敗としてリターンする
+	err = component.dirFlag()
+	if err != nil {
+		return fmt.Errorf("\nreacli ERR: %s\n ", apperr.CreateComponentErr)
 	}
 
-	jsFile, err := os.Create(component.name + ".js")
-	_, err = jsFile.Write([]byte(componentContent))
-	jsFile.Close()
-
+	extension := ".js"
+	// コンポーネント名を埋め込んだJSファイル作成
+	err = createEmbeddedFile(component.name + extension, func() string {
+		return strings.Replace(componentContent, "{$1}", component.name, 3)
+	})
+	// コンポーネント名を埋め込んだテストファイル作成
+	err = createEmbeddedFile(component.name + ".test" + extension, func() string {
+		return strings.Replace(testContent, "{$1}", component.name, 2)
+	})
+	//　cssファイル作成
 	cssFile, err := os.Create(component.name + ".css")
 	cssFile.Close()
 
-	testFile, err := os.Create(component.name + ".test.js")
-	_, err = testFile.Write([]byte(testContent))
-	testFile.Close()
-
+	// エラーがなければファイル作成したことを伝えるメッセージを出力する
 	if err == nil {
 		fmt.Printf("\ncreate a new component [%s] all ready exists\n ", component.name)
+	}
+	return
+}
+
+// dirフラグがあれば新しいディレクトリを作成しcdする
+func(component component) dirFlag() (err error) {
+	if component.flagDir == true {
+		err = os.Mkdir(component.name, 0777)
+		err = os.Chdir(component.name)
 	}
 	return
 }

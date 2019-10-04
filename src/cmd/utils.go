@@ -31,3 +31,13 @@ func execCommand(command string, args []string, cutin ...func()) error {
 	}
 	return nil
 }
+
+// 必要な情報を埋め込んだファイルを作成する
+// 埋め込む内容は外から関数として受け取る
+func createEmbeddedFile(name string, replace func() string) (err error) {
+	file, err := os.Create(name)
+	embedded := replace()
+	_, err = file.Write([]byte(embedded))
+	file.Close()
+	return
+}
