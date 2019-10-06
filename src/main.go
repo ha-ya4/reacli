@@ -5,9 +5,11 @@ import (
 	"fmt"
 
 	"github.com/urfave/cli"
-
-	appcmd "github.com/ha-ya4/reacli/src/cmd"
 )
+
+/*
+  create-cmd::{ commandCreate }
+*/
 
 func main() {
 	app := cli.NewApp()
@@ -16,7 +18,7 @@ func main() {
 	app.Version = "0.0.1"
 
 	app.Commands = []cli.Command {
-		appcmd.Create(),
+		commandCreate(),
 	}
 
 	err := app.Run(os.Args)

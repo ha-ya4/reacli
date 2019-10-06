@@ -1,4 +1,4 @@
-package cmd
+package main
 
 const componentContent = (
 `import React, { Component } from 'react';

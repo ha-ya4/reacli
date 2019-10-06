@@ -1,4 +1,4 @@
-package cmd
+package main
 
 import (
 	"fmt"
@@ -7,13 +7,17 @@ import (
 	"strings"
 
 	"github.com/urfave/cli"
-
-	apperr "github.com/ha-ya4/reacli/src/error"
 )
+
+/*
+	error::{ createFlagErr, createProjectErr, createComponentErr }
+	file-content::{ componentContent, tsComponentContent, testContent }
+	utils::{ createEmbeddedFile, execCommand }
+*/
 
 
 // Create はcreateコマンドの処理を記述した構造体をリターンする関数
-func Create() cli.Command {
+func commandCreate() cli.Command {
 
 	return cli.Command {
 		Name: "create",
@@ -56,6 +60,11 @@ func createFlag() []cli.Flag {
 	}
 }
 
+type cliContexter interface {
+	String(name string) string
+	Bool(name string) bool
+}
+
 // StringFlagの文字列に合わせて分岐する
 func createAction(c cliContexter) error {
 
@@ -71,7 +80,7 @@ func createAction(c cliContexter) error {
 		return c.create()
 	}
 
-	return fmt.Errorf("\nreacli ERR: %s\n ", apperr.CreateFlagErr)
+	return fmt.Errorf("\nreacli ERR: %s\n ", createFlagErr)
 }
 
 
@@ -120,7 +129,7 @@ func(project project) setUp() (err error) {
 	// srcフォルダに移動。移動ができなければプロジェクト作成失敗のはずなのでエラーメッセージを出す
 	err = os.Chdir(project.name + "/src")
 	if err != nil {
-		return fmt.Errorf("\nreacli ERR: %s\n ", apperr.CreateProjectErr)
+		return fmt.Errorf("\nreacli ERR: %s\n ", createProjectErr)
 	}
 
 	// Appファイルをクラスコンポーネントに書き換えてrender()の中身を消す
@@ -167,7 +176,7 @@ func(component component) create() (err error) {
 	// エラーがでたらファイル作成失敗としてリターンする
 	err = component.dirFlag()
 	if err != nil {
-		return fmt.Errorf("\nreacli ERR: %s\n ", apperr.CreateComponentErr)
+		return fmt.Errorf("\nreacli ERR: %s\n ", createComponentErr)
 	}
 
 	// tsフラグのありなしで拡張子とファイルに書き込む内容を変える
