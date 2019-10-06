@@ -70,14 +70,14 @@ func createAction(c cliContexter) error {
 
 	// 新しいプロジェクトを作成する
 	if c.String("project") != "" {
-		p := newProject(c.String("project"), c.Bool("default"), c.Bool("typescript"))
-		return p.create()
+		project := newProject(c.String("project"), c.Bool("default"), c.Bool("typescript"))
+		return project.create()
 	}
 
 	// 新しいコンポーネントファイルを作成する
 	if c.String("component") != "" {
-		c := newComponent(c.String("component"), c.Bool("dir"), c.Bool("typescript"))
-		return c.create()
+		component := newComponent(c.String("component"), c.Bool("dir"), c.Bool("typescript"))
+		return component.create(c)
 	}
 
 	return fmt.Errorf("\nreacli ERR: %s\n ", createFlagErr)
@@ -161,6 +161,20 @@ type component struct {
 	flagTS bool
 }
 
+type jsFile struct {
+	name string
+	flagTS bool
+}
+
+type cssFile struct {
+	name string
+}
+
+type testFile struct {
+	name string
+	flagTS bool
+}
+
 func newComponent(n string, d, ts bool) component {
 	return component {
 		name: n,
@@ -169,24 +183,41 @@ func newComponent(n string, d, ts bool) component {
 	}
 }
 
+func newJSFile(n string, c cliContexter) jsFile {
+	return jsFile {
+		name: n,
+		flagTS: c.Bool("typescript"),
+	}
+}
+
+func newCSSFile(n string) cssFile {
+	return cssFile {
+		name: n,
+	}
+}
+
+func newTestFile(n string, c cliContexter) testFile {
+	return testFile {
+		name: n,
+		flagTS: c.Bool("typescript"),
+	}
+}
+
 // カレントディレクトリに新しいコンポーネント.js、コンポーネント.css、テストファイルを作る
-func(component component) create() (err error) {
+func(component component) create(c cliContexter) (err error) {
 
 	// dirフラグがあれば新しいディレクトリを作成しその中にコンポーネントを作成する
 	// エラーがでたらファイル作成失敗としてリターンする
 	err = component.dirFlag()
 	if err != nil {
-		return fmt.Errorf("\nreacli ERR: %s\n ", createComponentErr)
+		return fmt.Errorf("\nreacli ERR: %s\n ", createComponentErr + "component.")
 	}
+
+	js := newJSFile(component.name, c)
+	err = js.create()
 
 	// tsフラグのありなしで拡張子とファイルに書き込む内容を変える
 	extension := component.selectExtension()
-	content := component.selectContent()
-
-	// コンポーネント名を埋め込んだJSファイル作成
-	err = createEmbeddedFile(component.name + extension, func() string {
-		return strings.Replace(content, "{$1}", component.name, 3)
-	})
 
 	// コンポーネント名を埋め込んだテストファイル作成
 	err = createEmbeddedFile(component.name + ".test" + extension, func() string {
@@ -214,19 +245,47 @@ func(component component) dirFlag() (err error) {
 	return
 }
 
-func(component component) selectContent() string {
-
-	if component.flagTS == true {
-		return tsComponentContent
-	}
-	return componentContent
-}
-
 func(component component) selectExtension() string {
 
 	if component.flagTS == true {
 		return ".tsx"
 	}
+	return ".js"
+}
+
+func(js jsFile) create() (err error) {
+
+	componentName := js.name + js.selectExtension()
+	content := js.selectContent()
+
+	// コンポーネント名を埋め込んだJSファイル作成
+	createErr := createEmbeddedFile(componentName, func() string {
+		return strings.Replace(content, "{$1}", js.name, 3)
+	})
+
+	if createErr != nil {
+		return fmt.Errorf("\nreacli ERR: %s\n ", createComponentErr + "js file.")
+	}
+	return
+}
+
+// jsファイルに書き込む内容を選択する
+func(js jsFile) selectContent() string {
+
+	if js.flagTS == true {
+		return tsComponentContent
+	}
+
+	return componentContent
+}
+
+// jsファイルにつける拡張子を選択する
+func(js jsFile) selectExtension() string {
+
+	if js.flagTS == true {
+		return ".tsx"
+	}
+
 	return ".js"
 }
 
