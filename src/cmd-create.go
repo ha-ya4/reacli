@@ -13,7 +13,7 @@ import (
 /*
 	error::{ createFlagErr, createProjectErr, createComponentErr }
 	file-content::{ componentContent, tsComponentContent, testContent }
-	utils::{ createEmbeddedFile, execCommand, selectExtension }
+	utils::{ createEmbeddedFile, execCommand }
 */
 
 
@@ -88,7 +88,12 @@ func createAction(c cliContexter) error {
 
 	// 新しいコンポーネントファイルを作成する
 	if c.String("component") != "" {
-		component := newComponent(c.String("component"), c.Bool("dir"), c.Bool("typescript"))
+		component := newComponent(
+			c.String("component"),
+			c.Bool("dir"),
+			c.Bool("typescript"),
+			c.Bool("scss"),
+		)
 		return component.create(c)
 	}
 
@@ -177,7 +182,7 @@ func(project project) setUpJSFile() error {
 		appTSX := strings.Replace(tsComponentContent, "{$1}", "App", 3)
 		// scssフラグがあればcssインポート部分をscssに変更
 		if project.flagSCSS == true {
-			appTSX = strings.Replace(appTSX, "{$2}", "s", 1)
+			appTSX = strings.Replace(appTSX, ".css", ".scss", 1)
 		}
 	  return ioutil.WriteFile("App.tsx", []byte(appTSX), 0777)
 	}
@@ -186,7 +191,7 @@ func(project project) setUpJSFile() error {
 	appJS := strings.Replace(componentContent, "{$1}", "App", 3)
 	// scssフラグがあればcssインポート部分をscssに変更
 	if project.flagSCSS == true {
-		appJS = strings.Replace(appJS, "{$2}", "s", 1)
+		appJS = strings.Replace(appJS, ".css", ".scss", 1)
 	}
 	return ioutil.WriteFile("App.js", []byte(appJS), 0777)
 }
@@ -212,15 +217,18 @@ type component struct {
 	name string
 	flagDir bool
 	flagTS bool
+	flagSCSS bool
 }
 
 type jsFile struct {
 	name string
 	flagTS bool
+	flagSCSS bool
 }
 
 type cssFile struct {
 	name string
+	flagSCSS bool
 }
 
 type testFile struct {
@@ -229,12 +237,13 @@ type testFile struct {
 }
 
 
-func newComponent(n string, d, ts bool) component {
+func newComponent(n string, d, ts, scss bool) component {
 
 	return component {
 		name: n,
 		flagDir: d,
 		flagTS: ts,
+		flagSCSS: scss,
 	}
 }
 
@@ -243,13 +252,15 @@ func newJSFile(n string, c cliContexter) jsFile {
 	return jsFile {
 		name: n,
 		flagTS: c.Bool("typescript"),
+		flagSCSS: c.Bool("scss"),
 	}
 }
 
-func newCSSFile(n string) cssFile {
+func newCSSFile(n string, c cliContexter) cssFile {
 
 	return cssFile {
 		name: n,
+		flagSCSS: c.Bool("scss"),
 	}
 }
 
@@ -279,7 +290,7 @@ func(component component) create(c cliContexter) (err error) {
 
 	// ファイル作成に必要な構造体作成
 	js := newJSFile(component.name, c)
-	css := newCSSFile(component.name)
+	css := newCSSFile(component.name, c)
 	test := newTestFile(component.name, c)
 	// forでまとめてcreateするために配列に入れる
 	files := [3]componentFile { js, css, test }
@@ -319,12 +330,14 @@ func(component component) dirFlag() (err error) {
 // jsファイル作成
 func(js jsFile) create() (err error) {
 
-	fileName := js.name + selectExtension(js.flagTS)
+	cssExtention := selectCSSExtension(js.flagSCSS)
+	fileName := js.name + selectJSExtension(js.flagTS)
 	content := js.selectContent()
 
 	// コンポーネント名を埋め込んだJSファイル作成
 	createErr := createEmbeddedFile(fileName, func() string {
-		return strings.Replace(content, "{$1}", js.name, 3)
+		c := strings.Replace(content, "{$1}", js.name, 3)
+		return strings.Replace(c, ".css", cssExtention, 1)
 	})
 
 	if createErr != nil {
@@ -347,7 +360,7 @@ func(js jsFile) selectContent() string {
 // cssファイル作成
 func(css cssFile) create() (err error) {
 
-	fileName := css.name + css.selectExtension()
+	fileName := css.name + selectCSSExtension(css.flagSCSS)
 	file, err := os.Create(fileName)
 	if err != nil {
 		return fmt.Errorf("\nreacli ERR: %s\n ", createComponentErr + " css file.")
@@ -356,17 +369,10 @@ func(css cssFile) create() (err error) {
 	return
 }
 
-// cssファイルにつける拡張子を選択する
-func(css cssFile) selectExtension() string {
-
-	return ".css"
-}
-
-
 // testファイル作成
 func(test testFile) create() (err error) {
 
-	fileName := test.name + ".test" + selectExtension(test.flagTS)
+	fileName := test.name + ".test" + selectJSExtension(test.flagTS)
 
 	// コンポーネント名を埋め込んだtestファイル作成
 	createErr := createEmbeddedFile(fileName, func() string {
@@ -378,3 +384,23 @@ func(test testFile) create() (err error) {
 	}
 	return
 }
+
+// jsファイルにつける拡張子を選択する
+func selectJSExtension(ts bool) string {
+
+	if ts == true {
+		return ".tsx"
+	}
+
+	return ".js"
+}
+
+// cssファイルにつける拡張子を選択する
+func selectCSSExtension(scss bool) string {
+
+	if scss == true {
+		return ".scss"
+	}
+	return ".css"
+}
+

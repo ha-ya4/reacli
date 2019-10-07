@@ -2,7 +2,7 @@ package main
 
 const componentContent = (
 `import React, { Component } from 'react';
-import './{$1}.{$2}css';
+import './{$1}.css';
 
 class {$1} extends Component {
 
@@ -20,7 +20,7 @@ export default {$1};
 
 const tsComponentContent = (
 `import * as React from 'react';
-import './{$1}.{$2}css';
+import './{$1}.css';
 
 interface Props {}
 
