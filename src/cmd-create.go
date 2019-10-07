@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"io/ioutil"
@@ -175,7 +176,9 @@ type testFile struct {
 	flagTS bool
 }
 
+
 func newComponent(n string, d, ts bool) component {
+
 	return component {
 		name: n,
 		flagDir: d,
@@ -184,6 +187,7 @@ func newComponent(n string, d, ts bool) component {
 }
 
 func newJSFile(n string, c cliContexter) jsFile {
+
 	return jsFile {
 		name: n,
 		flagTS: c.Bool("typescript"),
@@ -191,17 +195,25 @@ func newJSFile(n string, c cliContexter) jsFile {
 }
 
 func newCSSFile(n string) cssFile {
+
 	return cssFile {
 		name: n,
 	}
 }
 
 func newTestFile(n string, c cliContexter) testFile {
+
 	return testFile {
 		name: n,
 		flagTS: c.Bool("typescript"),
 	}
 }
+
+
+type componentFile interface {
+	create() error
+}
+
 
 // カレントディレクトリに新しいコンポーネント.js、コンポーネント.css、テストファイルを作る
 func(component component) create(c cliContexter) (err error) {
@@ -213,25 +225,31 @@ func(component component) create(c cliContexter) (err error) {
 		return fmt.Errorf("\nreacli ERR: %s\n ", createComponentErr + "component.")
 	}
 
+	// ファイル作成に必要な構造体作成
 	js := newJSFile(component.name, c)
-	err = js.create()
-
-	// tsフラグのありなしで拡張子とファイルに書き込む内容を変える
-	extension := component.selectExtension()
-
-	// コンポーネント名を埋め込んだテストファイル作成
-	err = createEmbeddedFile(component.name + ".test" + extension, func() string {
-		return strings.Replace(testContent, "{$1}", component.name, 2)
-	})
-
-	//　cssファイル作成
-	cssFile, err := os.Create(component.name + ".css")
-	cssFile.Close()
-
-	// エラーがなければファイル作成したことを伝えるメッセージを出力する
-	if err == nil {
-		fmt.Printf("\ncreate a new component [%s] all ready exists\n ", component.name)
+	css := newCSSFile(component.name)
+	test := newTestFile(component.name, c)
+	// forでまとめてcreateするために配列に入れる
+	files := [3]componentFile { js, css, test }
+	// ファイル作成時のエラーを全て拾いたいので、エラーを文字列として結合するための変数
+	var createErr string
+	// まとめてファイル作成。エラーハンドリングをまとめてするためにforを使う
+	// エラーの場合は文字列として結合し、あとでerrors.Newする
+	// これで階層化せずにエラーを全て表示できる
+	for _, f := range files {
+		e := f.create()
+		if e != nil {
+			createErr += e.Error()
+		}
 	}
+
+	// ファイル作成時にエラーが出ていればerrorを生成しreturnする
+	if createErr != "" {
+		err = errors.New(createErr)
+		return
+	}
+
+	fmt.Printf("\ncreate a new component [%s] all ready exists\n ", component.name)
 	return
 }
 
@@ -245,26 +263,20 @@ func(component component) dirFlag() (err error) {
 	return
 }
 
-func(component component) selectExtension() string {
 
-	if component.flagTS == true {
-		return ".tsx"
-	}
-	return ".js"
-}
-
+// jsファイル作成
 func(js jsFile) create() (err error) {
 
-	componentName := js.name + js.selectExtension()
+	fileName := js.name + selectExtension(js.flagTS)
 	content := js.selectContent()
 
 	// コンポーネント名を埋め込んだJSファイル作成
-	createErr := createEmbeddedFile(componentName, func() string {
+	createErr := createEmbeddedFile(fileName, func() string {
 		return strings.Replace(content, "{$1}", js.name, 3)
 	})
 
 	if createErr != nil {
-		return fmt.Errorf("\nreacli ERR: %s\n ", createComponentErr + "js file.")
+		return fmt.Errorf("\nreacli ERR: %s\n ", createComponentErr + " js file.")
 	}
 	return
 }
@@ -279,13 +291,49 @@ func(js jsFile) selectContent() string {
 	return componentContent
 }
 
-// jsファイルにつける拡張子を選択する
-func(js jsFile) selectExtension() string {
 
-	if js.flagTS == true {
+// cssファイル作成
+func(css cssFile) create() (err error) {
+
+	fileName := css.name + css.selectExtension()
+	file, err := os.Create(fileName)
+	if err != nil {
+		return fmt.Errorf("\nreacli ERR: %s\n ", createComponentErr + " css file.")
+	}
+	file.Close()
+	return
+}
+
+// cssファイルにつける拡張子を選択する
+func(css cssFile) selectExtension() string {
+
+	return ".css"
+}
+
+
+// testファイル作成
+func(test testFile) create() (err error) {
+
+	fileName := test.name + ".test" + selectExtension(test.flagTS)
+
+	// コンポーネント名を埋め込んだtestファイル作成
+	createErr := createEmbeddedFile(fileName, func() string {
+		return strings.Replace(testContent, "{$1}", test.name, 3)
+	})
+
+	if createErr != nil {
+		return fmt.Errorf("\nreacli ERR: %s\n ", createComponentErr + " test file.")
+	}
+	return
+}
+
+
+// jsファイルにつける拡張子を選択する
+func selectExtension(ts bool) string {
+
+	if ts == true {
 		return ".tsx"
 	}
 
 	return ".js"
 }
-
