@@ -41,3 +41,13 @@ func createEmbeddedFile(name string, replace func() string) (err error) {
 	file.Close()
 	return
 }
+
+// jsファイルにつける拡張子を選択する
+func selectExtension(ts bool) string {
+
+	if ts == true {
+		return ".tsx"
+	}
+
+	return ".js"
+}

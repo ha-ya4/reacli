@@ -13,7 +13,7 @@ import (
 /*
 	error::{ createFlagErr, createProjectErr, createComponentErr }
 	file-content::{ componentContent, tsComponentContent, testContent }
-	utils::{ createEmbeddedFile, execCommand }
+	utils::{ createEmbeddedFile, execCommand, selectExtension }
 */
 
 
@@ -44,9 +44,15 @@ func createFlag() []cli.Flag {
 			Name: "default, d",
 			Usage: "default project",
 		},
+		// TSを使用するかのフラグ
 		cli.BoolFlag {
 			Name: "typescript, ts",
 			Usage: "create new react project and if you need setup with typescript",
+		},
+		// SCSSを使用するかのフラグ
+		cli.BoolFlag {
+			Name: "scss",
+			Usage: "create new react project and if you need setup with scss",
 		},
 		// コンポーネントファイル作成
 		cli.StringFlag {
@@ -71,7 +77,12 @@ func createAction(c cliContexter) error {
 
 	// 新しいプロジェクトを作成する
 	if c.String("project") != "" {
-		project := newProject(c.String("project"), c.Bool("default"), c.Bool("typescript"))
+		project := newProject(
+			c.String("project"),
+			c.Bool("default"),
+			c.Bool("typescript"),
+			c.Bool("scss"),
+		)
 		return project.create()
 	}
 
@@ -89,24 +100,22 @@ type project struct {
 	name string
 	flagDefault bool
 	flagTS bool
+	flagSCSS bool
 }
 
-func newProject(n string, d, ts bool) project {
+func newProject(n string, d, ts, scss bool) project {
 	return project {
 		name: n,
 		flagDefault: d,
 		flagTS: ts,
+		flagSCSS: scss,
 	}
 }
 
 // create-react-appを使って新しいプロジェクトを作成する
 func(project project) create() error {
 
-	args := []string { "create-react-app", project.name }
-	// tsフラグがあればtypescriptを導入
-	if project.flagTS == true {
-		args = append(args, "--typescript")
-	}
+	args := project.createArgs()
 	// create-react-app実行
 	result := execCommand("npx", args, func() {
 		fmt.Printf("\nstarting create a new project [%s]. please wait...\n", project.name)
@@ -124,6 +133,16 @@ func(project project) create() error {
 	return nil
 }
 
+// プロジェクト作成に使うコマンドの引数を作成する(create-react-app --typescript)
+func(project project) createArgs() []string {
+	args := []string { "create-react-app", project.name }
+	// tsフラグがあればtypescriptを導入
+	if project.flagTS == true {
+		args = append(args, "--typescript")
+	}
+	return args
+}
+
 // デフォルトのプロジェクトを変更
 func(project project) setUp() (err error) {
 
@@ -133,14 +152,8 @@ func(project project) setUp() (err error) {
 		return fmt.Errorf("\nreacli ERR: %s\n ", createProjectErr)
 	}
 
-	// Appファイルをクラスコンポーネントに書き換えてrender()の中身を消す
-	if project.flagTS == true {
-		appTSX := strings.Replace(tsComponentContent, "{$1}", "App", 3)
-	  err = ioutil.WriteFile("App.tsx", []byte(appTSX), 0777)
-	} else {
-		appJS := strings.Replace(componentContent, "{$1}", "App", 3)
-	  err = ioutil.WriteFile("App.js", []byte(appJS), 0777)
-	}
+	err = project.setUpJSFile()
+	err = project.setUpCSSFile()
 
 	// componentsフォルダ作成
 	err = os.Mkdir("components", 0777)
@@ -152,6 +165,45 @@ func(project project) setUp() (err error) {
 	if err == nil {
 		fmt.Println("\nproject setup OK!\n ")
 	}
+	return
+}
+
+// Appファイルをクラスコンポーネントに書き換えてrender()の中身を消す
+// -scss jsファイルのcssインポートの部分部分をscssに変更
+func(project project) setUpJSFile() error {
+
+	// -tsフラグがあればtsの内容にする
+	if project.flagTS == true {
+		appTSX := strings.Replace(tsComponentContent, "{$1}", "App", 3)
+		// scssフラグがあればcssインポート部分をscssに変更
+		if project.flagSCSS == true {
+			appTSX = strings.Replace(appTSX, "{$2}", "s", 1)
+		}
+	  return ioutil.WriteFile("App.tsx", []byte(appTSX), 0777)
+	}
+
+	// -tsフラグがなければjsの内容にする
+	appJS := strings.Replace(componentContent, "{$1}", "App", 3)
+	// scssフラグがあればcssインポート部分をscssに変更
+	if project.flagSCSS == true {
+		appJS = strings.Replace(appJS, "{$2}", "s", 1)
+	}
+	return ioutil.WriteFile("App.js", []byte(appJS), 0777)
+}
+
+// scssフラグのありなしでcssファイルの拡張子を変更
+func(project project) setUpCSSFile() (err error) {
+
+	// scssフラグがなければ何もせずにリターン
+	if project.flagSCSS != true {
+		return nil
+	}
+
+	// scssフラグがあればAppとindexのcssをscssに変更
+	appCSS := []string {"App.css", "App.scss"}
+	err = execCommand("mv", appCSS)
+	indexCSS := []string {"index.css", "index.scss"}
+	err = execCommand("mv", indexCSS)
 	return
 }
 
@@ -325,15 +377,4 @@ func(test testFile) create() (err error) {
 		return fmt.Errorf("\nreacli ERR: %s\n ", createComponentErr + " test file.")
 	}
 	return
-}
-
-
-// jsファイルにつける拡張子を選択する
-func selectExtension(ts bool) string {
-
-	if ts == true {
-		return ".tsx"
-	}
-
-	return ".js"
 }
