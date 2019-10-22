@@ -1,6 +1,5 @@
 package main
 
-
 const (
 	// createコマンドに何を作るかのflagが指定されていないときのエラー
 	createFlagErr = "Missing create command flag. Please specify the create command flag."

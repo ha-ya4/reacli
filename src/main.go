@@ -1,8 +1,8 @@
 package main
 
 import (
-	"os"
 	"fmt"
+	"os"
 
 	"github.com/urfave/cli"
 )
@@ -17,7 +17,7 @@ func main() {
 	app.Usage = "project cli"
 	app.Version = "0.0.1"
 
-	app.Commands = []cli.Command {
+	app.Commands = []cli.Command{
 		commandCreate(),
 	}
 

@@ -3,8 +3,8 @@ package main
 import (
 	"errors"
 	"fmt"
-	"os"
 	"io/ioutil"
+	"os"
 	"strings"
 
 	"github.com/urfave/cli"
@@ -16,12 +16,11 @@ import (
 	utils::{ createEmbeddedFile, execCommand }
 */
 
-
 // Create はcreateコマンドの処理を記述した構造体をリターンする関数
 func commandCreate() cli.Command {
 
-	return cli.Command {
-		Name: "create",
+	return cli.Command{
+		Name:  "create",
 		Usage: "create the specified argument",
 		Flags: createFlag(),
 		Action: func(c *cli.Context) error {
@@ -32,40 +31,40 @@ func commandCreate() cli.Command {
 
 func createFlag() []cli.Flag {
 
-	return []cli.Flag {
+	return []cli.Flag{
 		// プロジェクト作成
 		// ディレクトリを２つ追加、logo.svg削除、App.jsをkclassに書き換える
-		cli.StringFlag {
-			Name: "project, p",
+		cli.StringFlag{
+			Name:  "project, p",
 			Usage: "create new react project and if you need setup",
 		},
 		// プロジェクトをcreate-react-appの初期状態のままにしておくかのフラグ
-		cli.BoolFlag {
-			Name: "default, d",
+		cli.BoolFlag{
+			Name:  "default, d",
 			Usage: "default project",
 		},
 		// TSを使用するかのフラグ
-		cli.BoolFlag {
-			Name: "typescript, ts",
+		cli.BoolFlag{
+			Name:  "typescript, ts",
 			Usage: "create new react project and if you need setup with typescript",
 		},
 		// SCSSを使用するかのフラグ
-		cli.BoolFlag {
-			Name: "scss",
+		cli.BoolFlag{
+			Name:  "scss",
 			Usage: "create new react project and if you need setup with scss",
 		},
 		// コンポーネントファイル作成
-		cli.StringFlag {
-			Name: "component, c",
+		cli.StringFlag{
+			Name:  "component, c",
 			Usage: "create new component file",
 		},
 		// 新しいディレクトリを作成しその中にコンポーネントを作成する
-		cli.BoolFlag {
-			Name: "dir",
+		cli.BoolFlag{
+			Name:  "dir",
 			Usage: "Create a new directory and create components in it",
 		},
-		cli.BoolFlag {
-			Name: "sfc",
+		cli.BoolFlag{
+			Name:  "sfc",
 			Usage: "create new SFC component file",
 		},
 	}
@@ -105,25 +104,24 @@ func createAction(c cliContexter) error {
 	return fmt.Errorf("\nreacli ERR: %s\n ", createFlagErr)
 }
 
-
 type project struct {
-	name string
+	name        string
 	flagDefault bool
-	flagTS bool
-	flagSCSS bool
+	flagTS      bool
+	flagSCSS    bool
 }
 
 func newProject(n string, d, ts, scss bool) project {
-	return project {
-		name: n,
+	return project{
+		name:        n,
 		flagDefault: d,
-		flagTS: ts,
-		flagSCSS: scss,
+		flagTS:      ts,
+		flagSCSS:    scss,
 	}
 }
 
 // create-react-appを使って新しいプロジェクトを作成する
-func(project project) create() error {
+func (project project) create() error {
 
 	args := project.createArgs()
 	// create-react-app実行
@@ -137,15 +135,15 @@ func(project project) create() error {
 
 	// defaultフラグがなければデフォルトプロジェクトから変更
 	if project.flagDefault == false {
-	  return project.setUp()
+		return project.setUp()
 	}
 
 	return nil
 }
 
 // プロジェクト作成に使うコマンドの引数を作成する(create-react-app --typescript)
-func(project project) createArgs() []string {
-	args := []string { "create-react-app", project.name }
+func (project project) createArgs() []string {
+	args := []string{"create-react-app", project.name}
 	// tsフラグがあればtypescriptを導入
 	if project.flagTS == true {
 		args = append(args, "--typescript")
@@ -154,7 +152,7 @@ func(project project) createArgs() []string {
 }
 
 // デフォルトのプロジェクトを変更
-func(project project) setUp() (err error) {
+func (project project) setUp() (err error) {
 
 	// srcフォルダに移動。移動ができなければプロジェクト作成失敗のはずなのでエラーメッセージを出す
 	err = os.Chdir(project.name + "/src")
@@ -180,7 +178,7 @@ func(project project) setUp() (err error) {
 
 // Appファイルをクラスコンポーネントに書き換えてrender()の中身を消す
 // -scss jsファイルのcssインポートの部分部分をscssに変更
-func(project project) setUpJSFile() error {
+func (project project) setUpJSFile() error {
 
 	// -tsフラグがあればtsの内容にする
 	if project.flagTS == true {
@@ -189,7 +187,7 @@ func(project project) setUpJSFile() error {
 		if project.flagSCSS == true {
 			appTSX = strings.Replace(appTSX, ".css", ".scss", 1)
 		}
-	  return ioutil.WriteFile("App.tsx", []byte(appTSX), 0777)
+		return ioutil.WriteFile("App.tsx", []byte(appTSX), 0777)
 	}
 
 	// -tsフラグがなければjsの内容にする
@@ -202,7 +200,7 @@ func(project project) setUpJSFile() error {
 }
 
 // scssフラグのありなしでcssファイルの拡張子を変更
-func(project project) setUpCSSFile() (err error) {
+func (project project) setUpCSSFile() (err error) {
 
 	// scssフラグがなければ何もせずにリターン
 	if project.flagSCSS != true {
@@ -210,91 +208,87 @@ func(project project) setUpCSSFile() (err error) {
 	}
 
 	// scssフラグがあればAppとindexのcssをscssに変更
-	appCSS := []string {"App.css", "App.scss"}
+	appCSS := []string{"App.css", "App.scss"}
 	err = execCommand("mv", appCSS)
-	indexCSS := []string {"index.css", "index.scss"}
+	indexCSS := []string{"index.css", "index.scss"}
 	err = execCommand("mv", indexCSS)
 	return
 }
 
-
 type component struct {
-	name string
-	flagDir bool
-	flagTS bool
+	name     string
+	flagDir  bool
+	flagTS   bool
 	flagSCSS bool
-	flagSFC bool
+	flagSFC  bool
 }
 
 type jsFile struct {
-	name string
-	flagTS bool
+	name     string
+	flagTS   bool
 	flagSCSS bool
-	flagSFC bool
+	flagSFC  bool
 }
 
 type cssFile struct {
-	name string
+	name     string
 	flagSCSS bool
 }
 
 type testFile struct {
-	name string
+	name   string
 	flagTS bool
 }
 
-
 func newComponent(n string, d, ts, scss, sfc bool) component {
 
-	return component {
-		name: n,
-		flagDir: d,
-		flagTS: ts,
+	return component{
+		name:     n,
+		flagDir:  d,
+		flagTS:   ts,
 		flagSCSS: scss,
-		flagSFC: sfc,
+		flagSFC:  sfc,
 	}
 }
 
 func newJSFile(n string, c cliContexter) jsFile {
 
-	return jsFile {
-		name: n,
-		flagTS: c.Bool("typescript"),
+	return jsFile{
+		name:     n,
+		flagTS:   c.Bool("typescript"),
 		flagSCSS: c.Bool("scss"),
-		flagSFC: c.Bool("sfc"),
+		flagSFC:  c.Bool("sfc"),
 	}
 }
 
 func newCSSFile(n string, c cliContexter) cssFile {
 
-	return cssFile {
-		name: n,
+	return cssFile{
+		name:     n,
 		flagSCSS: c.Bool("scss"),
 	}
 }
 
 func newTestFile(n string, c cliContexter) testFile {
 
-	return testFile {
-		name: n,
+	return testFile{
+		name:   n,
 		flagTS: c.Bool("typescript"),
 	}
 }
-
 
 type componentFile interface {
 	create() error
 }
 
-
 // カレントディレクトリに新しいコンポーネント.js、コンポーネント.css、テストファイルを作る
-func(component component) create(c cliContexter) (err error) {
+func (component component) create(c cliContexter) (err error) {
 
 	// dirフラグがあれば新しいディレクトリを作成しその中にコンポーネントを作成する
 	// エラーがでたらファイル作成失敗としてリターンする
 	err = component.dirFlag()
 	if err != nil {
-		return fmt.Errorf("\nreacli ERR: %s\n ", createComponentErr + "component.")
+		return fmt.Errorf("\nreacli ERR: %s\n ", createComponentErr+"component.")
 	}
 
 	// ファイル作成に必要な構造体作成
@@ -302,7 +296,7 @@ func(component component) create(c cliContexter) (err error) {
 	css := newCSSFile(component.name, c)
 	test := newTestFile(component.name, c)
 	// forでまとめてcreateするために配列に入れる
-	files := [3]componentFile { js, css, test }
+	files := [3]componentFile{js, css, test}
 	// ファイル作成時のエラーを全て拾いたいので、エラーを文字列として結合するための変数
 	var createErr string
 	// まとめてファイル作成。エラーハンドリングをまとめてするためにforを使う
@@ -326,7 +320,7 @@ func(component component) create(c cliContexter) (err error) {
 }
 
 // dirフラグがあれば新しいディレクトリを作成しcdする
-func(component component) dirFlag() (err error) {
+func (component component) dirFlag() (err error) {
 
 	if component.flagDir == true {
 		err = os.Mkdir(component.name, 0777)
@@ -335,9 +329,8 @@ func(component component) dirFlag() (err error) {
 	return
 }
 
-
 // jsファイル作成
-func(js jsFile) create() (err error) {
+func (js jsFile) create() (err error) {
 
 	fileName := js.name + selectJSExtension(js.flagTS)
 	content := js.selectContent()
@@ -350,13 +343,13 @@ func(js jsFile) create() (err error) {
 	})
 
 	if createErr != nil {
-		return fmt.Errorf("\nreacli ERR: %s\n ", createComponentErr + " js file.")
+		return fmt.Errorf("\nreacli ERR: %s\n ", createComponentErr+" js file.")
 	}
 	return
 }
 
 // jsファイルに書き込む内容を選択する
-func(js jsFile) selectContent() string {
+func (js jsFile) selectContent() string {
 
 	if js.flagSFC == true && js.flagTS == true {
 		return tsSfcComponentContent
@@ -373,21 +366,20 @@ func(js jsFile) selectContent() string {
 	return componentContent
 }
 
-
 // cssファイル作成
-func(css cssFile) create() (err error) {
+func (css cssFile) create() (err error) {
 
 	fileName := css.name + selectCSSExtension(css.flagSCSS)
 	file, err := os.Create(fileName)
 	if err != nil {
-		return fmt.Errorf("\nreacli ERR: %s\n ", createComponentErr + " css file.")
+		return fmt.Errorf("\nreacli ERR: %s\n ", createComponentErr+" css file.")
 	}
 	file.Close()
 	return
 }
 
 // testファイル作成
-func(test testFile) create() (err error) {
+func (test testFile) create() (err error) {
 
 	fileName := test.name + ".test" + selectJSExtension(test.flagTS)
 
@@ -397,7 +389,7 @@ func(test testFile) create() (err error) {
 	})
 
 	if createErr != nil {
-		return fmt.Errorf("\nreacli ERR: %s\n ", createComponentErr + " test file.")
+		return fmt.Errorf("\nreacli ERR: %s\n ", createComponentErr+" test file.")
 	}
 	return
 }
@@ -420,4 +412,3 @@ func selectCSSExtension(scss bool) string {
 	}
 	return ".css"
 }
-
