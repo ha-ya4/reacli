@@ -12,7 +12,7 @@ import (
 
 /*
 	error::{ createFlagErr, createProjectErr, createComponentErr }
-	file-content::{ componentContent, tsComponentContent, testContent }
+	file-content::{ componentContent, tsComponentContent, tsSfcComponentContent, sfcComponentContent, testContent }
 	utils::{ createEmbeddedFile, execCommand }
 */
 
@@ -64,6 +64,10 @@ func createFlag() []cli.Flag {
 			Name: "dir",
 			Usage: "Create a new directory and create components in it",
 		},
+		cli.BoolFlag {
+			Name: "sfc",
+			Usage: "create new SFC component file",
+		},
 	}
 }
 
@@ -93,6 +97,7 @@ func createAction(c cliContexter) error {
 			c.Bool("dir"),
 			c.Bool("typescript"),
 			c.Bool("scss"),
+			c.Bool("sfc"),
 		)
 		return component.create(c)
 	}
@@ -218,12 +223,14 @@ type component struct {
 	flagDir bool
 	flagTS bool
 	flagSCSS bool
+	flagSFC bool
 }
 
 type jsFile struct {
 	name string
 	flagTS bool
 	flagSCSS bool
+	flagSFC bool
 }
 
 type cssFile struct {
@@ -237,13 +244,14 @@ type testFile struct {
 }
 
 
-func newComponent(n string, d, ts, scss bool) component {
+func newComponent(n string, d, ts, scss, sfc bool) component {
 
 	return component {
 		name: n,
 		flagDir: d,
 		flagTS: ts,
 		flagSCSS: scss,
+		flagSFC: sfc,
 	}
 }
 
@@ -253,6 +261,7 @@ func newJSFile(n string, c cliContexter) jsFile {
 		name: n,
 		flagTS: c.Bool("typescript"),
 		flagSCSS: c.Bool("scss"),
+		flagSFC: c.Bool("sfc"),
 	}
 }
 
@@ -330,9 +339,9 @@ func(component component) dirFlag() (err error) {
 // jsファイル作成
 func(js jsFile) create() (err error) {
 
-	cssExtention := selectCSSExtension(js.flagSCSS)
 	fileName := js.name + selectJSExtension(js.flagTS)
 	content := js.selectContent()
+	cssExtention := selectCSSExtension(js.flagSCSS)
 
 	// コンポーネント名を埋め込んだJSファイル作成
 	createErr := createEmbeddedFile(fileName, func() string {
@@ -348,6 +357,14 @@ func(js jsFile) create() (err error) {
 
 // jsファイルに書き込む内容を選択する
 func(js jsFile) selectContent() string {
+
+	if js.flagSFC == true && js.flagTS == true {
+		return tsSfcComponentContent
+	}
+
+	if js.flagSFC == true {
+		return sfcComponentContent
+	}
 
 	if js.flagTS == true {
 		return tsComponentContent
